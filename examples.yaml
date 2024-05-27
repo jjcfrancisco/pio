@@ -1,0 +1,55 @@
+service:
+  key: highway
+  values: service
+
+minor:
+  key: highway
+  values:
+  - unclassified
+  - residential 
+  - living_street
+  - road
+
+motorway_construction:
+  $and:
+  - key: highway
+    values: construction
+  - key: construction
+    values:
+      - motorway
+      - motorway_link
+
+path_construction:
+  key: highway
+  values: construction
+  $or:
+  - key: construction
+    values:
+    - pedestrian
+    - path
+    - footway
+    - cycleway
+    - steps
+    - bridleway
+    - corridor
+  - key: public_transport 
+    values: platform
+
+# $any implies that must be some value other than empty, null or ""
+example_some:
+  key: theater
+  values: $some
+
+# $all implies that all values including empty, null or ""
+example_all:
+  key: cinema
+  values: $all
+
+geometry_allowed1: polygon
+geometry_allowed2:
+- point
+- linestring
+
+schema:
+- target_name: name_en
+  original_name: name:en
