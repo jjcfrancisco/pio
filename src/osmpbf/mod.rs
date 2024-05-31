@@ -3,7 +3,6 @@ use geo::{coord, Coord, Geometry, LineString, Point, Polygon};
 use osmpbf::{Element, ElementReader};
 use std::collections::HashMap;
 
-#[allow(dead_code)]
 pub struct Osm {
     pub id: i64,
     pub osm_type: String,
@@ -45,7 +44,7 @@ pub fn read_nodes_from_osmpbf(path: &str) -> Result<HashMap<i64, Osm>> {
                         }
                         properties
                     },
-                    geometry: to_point(d.lat(), d.lon()),
+                    geometry: to_point(d.lon(), d.lat()),
                 },
             );
         }
@@ -80,10 +79,18 @@ pub fn process_lines_and_polygons(
                         properties
                     },
                     geometry: {
-                        let nodes = w.node_locations();
-                        let geom = nodes
-                            .map(|node| {
-                                coord! {x: node.lat(), y: node.lon()}
+                        let refs = w.refs();
+                        let geom = refs
+                            .map(|ref_id| {
+                                let node = data.get(&ref_id).expect("Node not found");
+                                if let Some(geom) = &node.geometry {
+                                    match geom {
+                                        Geometry::Point(p) => coord! {x: p.x(), y: p.y()},
+                                        _ => panic!("Node is not a point"),
+                                    }
+                                } else {
+                                    panic!("Node has no geometry");
+                                }
                             })
                             .collect::<Vec<Coord>>();
                         if geom.get(0) == geom.last() {
@@ -95,29 +102,24 @@ pub fn process_lines_and_polygons(
                 },
             );
         }
-        Element::Relation(r) => (),
+        Element::Relation(_) => (),
     })?;
 
     Ok(data)
 }
 
-pub fn to_point(lat: f64, lon: f64) -> Option<Geometry> {
+fn to_point(lat: f64, lon: f64) -> Option<Geometry> {
     Some(Geometry::Point(Point::new(lat, lon)))
 }
 
-// pub fn to_line_or_poly(way: &Way) -> Option<Vec<Geometry>> {
-//     let nodes = way.node_locations();
-//     let geom = nodes
-//         .map(|node| {
-//             coord! {x: node.lat(), y: node.lon()}
-//         })
-//         .collect::<Vec<Coord>>();
-//     println!("Way: {:?}", way.node_locations());
-//     panic!("EXIT");
-//     println!("{:?}", geom);
-//     if geom.get(0) == geom.last() {
-//         Some(Geometry::Polygon(Polygon::new(LineString(geom), vec![])))
-//     } else {
-//         Some(Geometry::LineString(LineString(geom)))
-//     }
-// }
+// Unit tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_point() {
+        let point = to_point(1.0, 2.0);
+        assert_eq!(point, Some(Geometry::Point(Point::new(1.0, 2.0))));
+    }
+}

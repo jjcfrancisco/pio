@@ -1,13 +1,23 @@
 pub type Result<T> = core::result::Result<T, Error>;
 pub type Error = Box<dyn std::error::Error>;
 
-use geo::Geometry;
-
 mod osmpbf;
 mod io;
 
-use osmpbf::{read_nodes_from_osmpbf, process_lines_and_polygons};
+use std::collections::HashMap;
+
+use osmpbf::{process_lines_and_polygons, read_nodes_from_osmpbf, Osm};
 use io::write_geojson;
+
+#[allow(dead_code)]
+fn print_data(data: &HashMap<i64, Osm>) {
+    for (id, osm) in data {
+        println!("ID: {}", id);
+        println!("Type: {}", osm.osm_type);
+        println!("Properties: {:?}", osm.properties);
+        println!("Geometry: {:?}", osm.geometry);
+    }
+}
 
 fn main() -> Result<()> {
     let osmpbf_file = "melilla-latest.osm.pbf";
@@ -15,17 +25,7 @@ fn main() -> Result<()> {
     let raw_data = read_nodes_from_osmpbf(osmpbf_file)?;
     // Reads lines and polygons
     let data = process_lines_and_polygons(osmpbf_file, raw_data)?;
-    for o in &data {
-        // Get geometry
-        let geom = o.1.geometry.as_ref().expect("No geometry found");
-        // Check geometry is polygon or line
-        if let Geometry::Polygon(p) = geom {
-            println!("Polygon: {:?}", p);
-        } else if let Geometry::LineString(l) = geom {
-            println!("LineString: {:?}", l);
-        }
-    }
-    write_geojson(data);
+    write_geojson(data)?;
     Ok(())
 }
 
