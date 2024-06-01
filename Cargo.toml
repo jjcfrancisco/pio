@@ -11,3 +11,4 @@ derive_more = {version = "1.0.0-beta", features = ["from"]}
 geo = "0.28.0"
 geojson = "0.24.1"
 serde_json = "1.0.117"
+serde_yaml = "0.9.34"

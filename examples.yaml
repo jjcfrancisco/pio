@@ -43,7 +43,7 @@ example_some:
 # $all implies that all values including empty, null or ""
 example_all:
   key: cinema
-  values: $all
+  values: $any
 
 geometry_allowed1: polygon
 geometry_allowed2:

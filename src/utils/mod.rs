@@ -5,6 +5,13 @@ use std::collections::HashMap;
 
 use crate::Result;
 
+// Read file to YAML
+pub fn read_yaml(path: &str) -> Result<serde_yaml::Value> {
+    let file = std::fs::read_to_string(path)?;
+    let yaml: serde_yaml::Value = serde_yaml::from_str(&file)?;
+    Ok(yaml)
+}
+
 pub fn write_geojson(objects: HashMap<i64, Osm>) -> Result<()> {
     let features: Vec<Feature> = objects
         .iter()
