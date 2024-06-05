@@ -23,8 +23,7 @@ pub fn write_geojson(objects: HashMap<i64, Osm>) -> Result<()> {
                 // Iterate over properties to create JsonObject
                 let mut properties = JsonObject::new();
                 for prop in &object.properties {
-                    let key_value: Vec<&str> = prop.split(": ").collect();
-                    properties.insert(String::from(key_value[0]), JsonValue::from(key_value[1]));
+                    properties.insert(prop.key.clone(), JsonValue::from(prop.value.clone()));
                 }
                 Some(properties)
             },

@@ -8,8 +8,8 @@ mod schema;
 use std::collections::HashMap;
 
 use osmpbf::{process_lines_and_polygons, read_nodes_from_osmpbf, Osm};
-use utils::{write_geojson, read_yaml};
-use schema::filter;
+use utils::write_geojson;
+use schema::{process_data, apply_schema};
 
 #[allow(dead_code)]
 fn print_data(data: &HashMap<i64, Osm>) {
@@ -28,11 +28,11 @@ fn main() -> Result<()> {
     let raw_data = read_nodes_from_osmpbf(osmpbf_file)?;
     // Reads lines and polygons
     let data = process_lines_and_polygons(osmpbf_file, raw_data)?;
-    // Filter data
-    filter(&data)?;
+    // Process data
+    let data = process_data("poi.yaml", data)?;
 
     // Save data to GeoJSON
-    write_geojson(data)?;
+    // write_geojson(data)?;
     Ok(())
 }
 

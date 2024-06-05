@@ -3,11 +3,18 @@ use geo::{coord, Coord, Geometry, LineString, Point, Polygon};
 use osmpbf::{Element, ElementReader};
 use std::collections::HashMap;
 
+#[derive(Debug)]
+pub struct Property {
+    pub key: String,
+    pub value: String,
+}
+
 pub struct Osm {
     pub id: i64,
     pub osm_type: String,
-    pub properties: Vec<String>,
+    pub properties: Vec<Property>,
     pub geometry: Option<Geometry>,
+    pub geometry_type: Option<String>,
 }
 
 pub fn read_nodes_from_osmpbf(path: &str) -> Result<HashMap<i64, Osm>> {
@@ -23,11 +30,15 @@ pub fn read_nodes_from_osmpbf(path: &str) -> Result<HashMap<i64, Osm>> {
                     properties: {
                         let mut properties = Vec::new();
                         for (key, value) in n.tags() {
-                            properties.push(format!("{}: {}", key, value));
+                            properties.push(Property {
+                                key: key.to_string(),
+                                value: value.to_string(),
+                            });
                         }
                         properties
                     },
                     geometry: to_point(n.lat(), n.lon()),
+                    geometry_type: Some("Point".to_string())
                 },
             );
         }
@@ -40,11 +51,15 @@ pub fn read_nodes_from_osmpbf(path: &str) -> Result<HashMap<i64, Osm>> {
                     properties: {
                         let mut properties = Vec::new();
                         for (key, value) in d.tags() {
-                            properties.push(format!("{}: {}", key, value));
+                            properties.push(Property {
+                                key: key.to_string(),
+                                value: value.to_string(),
+                            });
                         }
                         properties
                     },
                     geometry: to_point(d.lon(), d.lat()),
+                    geometry_type: Some("Point".to_string())
                 },
             );
         }
@@ -66,41 +81,44 @@ pub fn process_lines_and_polygons(
         Element::Node(_) => (),
         Element::DenseNode(_) => (),
         Element::Way(w) => {
-            data.insert(
-                w.id(),
-                Osm {
-                    id: w.id(),
-                    osm_type: "node".to_string(),
-                    properties: {
-                        let mut properties = Vec::new();
-                        for (key, value) in w.tags() {
-                            properties.push(format!("{}: {}", key, value));
-                        }
-                        properties
-                    },
-                    geometry: {
-                        let refs = w.refs();
-                        let geom = refs
-                            .map(|ref_id| {
-                                let node = data.get(&ref_id).expect("Node not found");
-                                if let Some(geom) = &node.geometry {
-                                    match geom {
-                                        Geometry::Point(p) => coord! {x: p.x(), y: p.y()},
-                                        _ => panic!("Node is not a point"),
-                                    }
-                                } else {
-                                    panic!("Node has no geometry");
-                                }
-                            })
-                            .collect::<Vec<Coord>>();
-                        if geom.get(0) == geom.last() {
-                            Some(Geometry::Polygon(Polygon::new(LineString(geom), vec![])))
-                        } else {
-                            Some(Geometry::LineString(LineString(geom)))
-                        }
-                    },
+            let mut osm = Osm {
+                id: w.id(),
+                osm_type: "way".to_string(),
+                properties: {
+                    let mut properties = Vec::new();
+                    for (key, value) in w.tags() {
+                        properties.push(Property {
+                            key: key.to_string(),
+                            value: value.to_string(),
+                        });
+                    }
+                    properties
                 },
-            );
+                geometry: None,
+                geometry_type: None,
+            };
+            let refs = w.refs();
+            let geom = refs
+                .map(|ref_id| {
+                    let node = data.get(&ref_id).expect("Node not found");
+                    if let Some(geom) = &node.geometry {
+                        match geom {
+                            Geometry::Point(p) => coord! {x: p.x(), y: p.y()},
+                            _ => panic!("Node is not a point"),
+                        }
+                    } else {
+                        panic!("Node has no geometry");
+                    }
+                })
+                .collect::<Vec<Coord>>();
+            if geom.get(0) == geom.last() {
+                osm.geometry_type = Some("Polygon".to_string());
+                osm.geometry = Some(Geometry::Polygon(Polygon::new(LineString(geom), vec![])))
+            } else {
+                osm.geometry_type = Some("LineString".to_string());
+                osm.geometry = Some(Geometry::LineString(LineString(geom)))
+            };
+            data.insert(w.id(), osm);
         }
         Element::Relation(_) => (),
     })?;

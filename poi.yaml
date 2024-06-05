@@ -1,0 +1,296 @@
+# geometry_types: polygon
+geometry_types:
+- Point
+- Polygon
+
+fields:
+- name: name
+  type: string
+- name: name:en
+  type: string
+  rename_to: name_en
+- name: name:de
+  type: string
+  rename_to: name_de
+- name: level
+  type: integer
+- name: indoor
+  type: boolean
+- include:
+  - rank
+  - subclass
+  - class
+
+class:
+  - key: barrier
+    values: ['bollard']
+    then: bollard
+  - key: barrier
+    values: ['border_control']
+    then: border_control
+  - key: barrier
+    values: ['cycle_barrier']
+    then: cycle_barrier
+  - key: barrier
+    values: ['gate']
+    then: gate
+  - key: barrier
+    values: ['lift_gate']
+    then: lift_gate
+  - key: barrier
+    values: ['sally_port']
+    then: sally_port
+  - key: barrier
+    values: ['stile']
+    then: stile
+  - key: barrier
+    values: ['toll_booth']
+    then: toll_booth
+  - key: leisure
+    values: ['dog_park']
+    then: dog_park
+  - key: leisure
+    values: ['escape_game']
+    then: escape_game
+  - key: leisure
+    values: ['garden']
+    then: garden
+  - key: leisure
+    values: ['ice_rink']
+    then: ice_rink
+  - key: leisure
+    values: ['hackerspace']
+    then: hackerspace
+  - key: leisure
+    values: ['marina']
+    then: marina
+  - key: leisure
+    values: ['park']
+    then: park
+  - key: leisure
+    values: ['pitch']
+    then: pitch
+  - key: leisure
+    values: ['playground']
+    then: playground
+  - key: leisure
+    values: ['sports_centre']
+    then: sports_centre
+  - key: leisure
+    values: ['stadium']
+    then: stadium
+  - key: leisure
+    values: ['swimming_area']
+    then: swimming_area
+  - key: leisure
+    values: ['swimming_pool']
+    then: swimming_pool
+  - key: leisure
+    values: ['water_park']
+    then: water_park
+  - key: amenity
+    values: ['bank']
+    then: bank
+  - key: amenity
+    values: ['bicycle_parking']
+    then: bicycle_parking
+  - key: amenity
+    values: ['bicycle_rental']
+    then: bicycle_rental
+  - key: amenity
+    values: ['cinema']
+    then: cinema
+  - key: amenity
+    values: ['dentist']
+    then: dentist
+  - key: amenity
+    values: ['doctors']
+    then: doctors
+  - key: amenity
+    values: ['drinking_water']
+    then: drinking_water
+  - key: amenity
+    values: ['ferry_terminal']
+    then: ferry_terminal
+  - key: amenity
+    values: ['fire_station']
+    then: fire_station
+  - key: amenity
+    values: ['motorcycle_parking']
+    then: motorcycle_parking
+  - key: amenity
+    values: ['parking']
+    then: parking
+  - key: amenity
+    values: ['pharmacy']
+    then: pharmacy
+  - key: amenity
+    values: ['place_of_worship']
+    then: place_of_worship
+  - key: amenity
+    values: ['police']
+    then: police
+  - key: amenity
+    values: ['prison']
+    then: prison
+  - key: amenity
+    values: ['recycling']
+    then: recycling
+  - key: amenity
+    values: ['restaurant']
+    then: restaurant
+  - key: amenity
+    values: ['shelter']
+    then: shelter
+  - key: amenity
+    values: ['swimming_pool']
+    then: swimming_pool
+  - key: amenity
+    values: ['telephone']
+    then: telephone
+  - key: amenity
+    values: ['theatre']
+    then: theatre
+  - key: amenity
+    values: ['toilets']
+    then: toilets
+  - key: amenity
+    values: ['veterinary']
+    then: veterinary
+  - key: amenity
+    values: ['waste_basket']
+    then: waste_basket
+  - key: historic
+    values: ['monument']
+    then: monument
+  - key: landuse
+    values: ['basin']
+    then: basin
+  - key: landuse
+    values: ['brownfield']
+    then: brownfield
+  - key: landuse
+    values: ['reservoir']
+    then: reservoir
+  - key: landuse
+    values: ['winter_sports']
+    then: winter_sports
+  - key: shop 
+    values: ['accessories', 'antiques', 'beauty', 'bed', 'boutique', 'camera', 'carpet', 'charity', 'chemist', 'chocolate', 
+            'coffee', 'computer', 'convenience', 'confectionery', 'copyshop', 'cosmetics', 'garden_centre', 'doityourself',
+            'erotic', 'electronics', 'fabric', 'florist', 'frozen_food', 'furniture', 'video_games', 'video',
+            'general', 'gift', 'hardware', 'hearing_aids', 'hifi', 'interior_decoration',
+            'jewelry', 'kiosk', 'locksmith', 'lamps', 'mall', 'massage', 'motorcycle', 'mobile_phone',
+            'newsagent', 'optician', 'outdoor', 'paint', 'perfumery', 'perfume', 'pet', 'photo', 'second_hand', 
+            'shoes', 'sports', 'stationery', 'tailor', 'tattoo', 'ticket', 'tobacco', 'toys', 'travel_agency',
+            'watches', 'weapons', 'wholesale']
+  - key: amenity
+    values: ['accountant', 'advertising_agency', 'architect', 'association', 'bail_bond_agent', 'charity',
+            'company', 'construction_company', 'consulting', 'cooperative', 'courier', 'coworking', 'diplomatic',
+            'educational_institution', 'employment_agency', 'energy_supplier', 'engineer', 'estate_agent', 'financial',
+            'financial_advisor', 'forestry', 'foundation', 'geodesist', 'government', 'graphic_design', 'guide',
+            'harbour_master', 'health_insurance', 'insurance', 'interior_design', 'it', 'lawyer', 'logistics', 'marketing',
+            'moving_company', 'newspaper', 'ngo', 'notary', 'physician', 'political_party', 'private_investigator',
+            'property_management', 'publisher', 'quango', 'religion', 'research', 'security', 'surveyor', 'tax_advisor',
+            'taxi', 'telecommunication', 'therapist', 'translator', 'travel_agent', 'tutoring', 'union', 'university',
+            'water_utility', 'web_design', 'wedding_planner']
+    then: office
+  - key: amenity
+    values: ['townhall', 'public_building', 'courthouse', 'community_centre']
+    then: town_hall
+  - key: leisure
+    values: ['golf', 'golf_course', 'miniature_golf']
+    then: leisure
+  - key: golf
+    values: ['fast_food', 'food_court']
+    then: fast_food
+  - key: amenity
+    values: ['park', 'bbq']
+    then: amenity
+  - key: highway
+    values: ['bus_stop']
+    then: bus_stop
+  - key: amenity
+    values: ['bus_stop', 'bus_station']
+    then: bus
+  - key: railway
+    values: ['subway_entrance', 'train_station_entrance']
+    then: entrance
+  - key: camp_site
+    values: ['camp_site', 'caravan_site']
+  - key: laundry
+    values: ['laundry', 'dry_cleaning']
+  - key: amenity
+    values: ['supermarket', 'deli', 'delicatessen', 'department_store', 'greengrocer', 'marketplace']
+    then: grocery
+  - key: amenity
+    values: ['books', 'library']
+    then: library
+  - key: amenity
+    values: ['university', 'college']
+    then: college
+  - key: building
+    values: ['hotel', 'motel', 'bed_and_breakfast', 'guest_house', 'hostel', 'chalet', 'alpine_hut', 'dormitory']
+    then: lodging
+  - key: amenity
+    values: ['ice_cream']
+    then: ice_cream
+  - key: amenity
+    values: ['post_box', 'post_office', 'parcel_locker']
+    then: post_box
+  - key: amenity
+    values: ['cafe']
+    then: cafe
+  - key: amenity
+    values: ['school', 'kindergarten']
+    then: school
+  - key: alcohol_shop
+    values: ['alcohol', 'beverages', 'wine']
+  - key: bar
+    values: ['bar', 'nightclub']
+    then: amenity
+  - key: waterway
+    values: ['marina', 'dock']
+    then: harbor
+  - key: amenity
+    values: ['car', 'car_repair', 'car_parts', 'taxi']
+    then: car
+  - key: amenity
+    values: ['hospital', 'nursing_home', 'clinic']
+    then: hospital
+  - key: amenity
+    values: ['grave_yard']
+    then: cemetery
+  - key: landuse
+    values: ['cemetery']
+    then: cemetery
+  - key: attraction
+    values: ['attraction', 'viewpoint']
+  - key: amenity
+    values: ['biergarten', 'pub']
+    then: beer
+  - key: music
+    values: ['music', 'musical_instrument']
+  - key: stadium
+    values: ['american_football', 'stadium', 'soccer']
+  - key: amenity
+    values: ['art', 'artwork', 'gallery', 'arts_centre']
+    then: art_gallery
+  - key: historic
+    values: ['castle', 'ruins']
+    then: castle
+  - key: amenity
+    values: ['atm']
+    then: atm
+  - key: amenity
+    values: ['fuel', 'charging_station']
+    then: fuel
+  - key: aerialway
+    values: ['station']
+    then: aerialway
+  - key: railway
+    values: ['halt', 'tram_stop', 'subway']
+    and:
+      - key: railway
+        values: ['station']
+    then: railway
