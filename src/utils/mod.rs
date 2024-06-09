@@ -45,3 +45,93 @@ pub fn write_geojson(objects: HashMap<i64, Osm>) -> Result<()> {
     std::fs::write("melilla.geojson", pgj.unwrap())?;
     Ok(())
 }
+
+
+#[cfg(test)]
+mod tests {
+    use serde_yaml;
+    use serde::Deserialize;
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Config {
+        schema: String,
+        geometry_types: Vec<String>,
+        fields: Vec<Field>,
+        class: Vec<Kvat>,
+    }
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Field {
+        name: String,
+        field_type: String,
+        rename_to: Option<String>,
+    }
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Kvat {
+        key: String,
+        values: Vec<String>,
+        and: Option<Vec<Kv>>,
+        then: String,
+    }
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Kv {
+        key: String,
+        values: Vec<String>,
+    }
+
+    #[test]
+    fn test_read_yaml() {
+        let yaml = "
+        schema: omt
+        geometry_types:
+          - Point
+          - LineString
+          - Polygon
+        fields:
+          - name: name:en
+            field_type: string
+            rename_to: name_en
+        class:
+          - key: amenity
+            values: ['bus_stop', 'bus_station']
+            then: bus
+          - key: railway
+            values: ['halt', 'tram_stop', 'subway']
+            and:
+              - key: railway
+                values: ['station']
+            then: railway
+        ";
+
+        let deser: Config = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(
+            deser,
+            Config {
+                schema: "omt".to_string(),
+                geometry_types: vec!["Point".to_string(), "LineString".to_string(), "Polygon".to_string()],
+                fields: vec![Field {
+                    name: "name:en".to_string(),
+                    field_type: "string".to_string(),
+                    rename_to: Some("name_en".to_string()),
+                }],
+                class: vec![
+                    Kvat {
+                        key: "amenity".to_string(),
+                        values: vec!["bus_stop".to_string(), "bus_station".to_string()],
+                        and: None,
+                        then: "bus".to_string(),
+                    },
+                    Kvat {
+                        key: "railway".to_string(),
+                        values: vec!["halt".to_string(), "tram_stop".to_string(), "subway".to_string()],
+                        and: Some(vec![Kv {
+                            key: "railway".to_string(),
+                            values: vec!["station".to_string()],
+                        }]),
+                        then: "railway".to_string(),
+                    }
+                ]
+            }
+        );
+    }
+}
+

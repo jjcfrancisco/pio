@@ -16,10 +16,6 @@ fields:
   type: integer
 - name: indoor
   type: boolean
-- include:
-  - rank
-  - subclass
-  - class
 
 class:
   - key: barrier

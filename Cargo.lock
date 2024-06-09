@@ -398,6 +398,7 @@ dependencies = [
  "geo",
  "geojson",
  "osmpbf",
+ "serde",
  "serde_json",
  "serde_yaml",
 ]

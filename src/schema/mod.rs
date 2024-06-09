@@ -40,6 +40,13 @@ pub struct Class {
     pub and: And,
 }
 
+pub fn apply_schema_test(config: &Value, osm: &Osm) -> Result<()> {
+
+
+    Ok(())
+
+}
+
 pub fn apply_schema(config: &Value, osm: &Osm) -> Result<()> {
     // Go over the configuration
     let mut class: Class = Default::default();
