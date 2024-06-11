@@ -1,5 +1,6 @@
 use crate::Result;
-use geo::{coord, Coord, CoordsIter, Geometry, LineString, Point, Polygon};
+use crate::utils::to_point;
+use geo::{coord, Coord, CoordsIter, Geometry, LineString, Polygon};
 use osmpbf::{Element, ElementReader};
 use std::collections::HashMap;
 
@@ -141,14 +142,35 @@ fn process_lines_and_polygons(path: &str, oc: OsmCollection) -> Result<OsmCollec
     Ok(data)
 }
 
-fn to_point(lat: f64, lon: f64) -> Option<Geometry> {
-    Some(Geometry::Point(Point::new(lat, lon)))
-}
-
 // Unit tests
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     #[test]
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_read_osmpbf() {
+        let osm = read_osmpbf("tests/melilla-latest.osm.pbf").expect("Failed to read test OSM PBF file");
+        assert_eq!(osm.objects.len(), 79114);
+    }
+
+    #[test]
+    fn test_process_lines_and_polygons() {
+        let nodes = read_nodes_from_osmpbf("tests/melilla-latest.osm.pbf").expect("Failed to read nodes from OSM PBF file");
+        let nodes_ways_relations = process_lines_and_polygons("tests/melilla-latest.osm.pbf", nodes).expect("Failed to process lines and polygons");
+        // Assert per type
+        let mut points = 0;
+        let mut lines = 0;
+        let mut polygons = 0;
+        for (_, osm) in nodes_ways_relations.objects.iter() {
+            match osm.geometry_type.as_ref().unwrap().as_str() {
+                "Point" => points += 1,
+                "LineString" => lines += 1,
+                "Polygon" => polygons += 1,
+                _ => (),
+            }
+        }
+        assert_eq!(points, 68673);
+        assert_eq!(lines, 4614);
+        assert_eq!(polygons, 5827);
+    }
+}

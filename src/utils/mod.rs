@@ -3,7 +3,7 @@ use crate::schema::PioCollection;
 use crate::Result;
 pub mod config;
 
-use geo::Geometry;
+use geo::{Geometry, Point};
 use geojson::{Feature, FeatureCollection, GeoJson, JsonObject, JsonValue};
 use polars::prelude::*;
 use serde_json::to_string_pretty;
@@ -46,6 +46,11 @@ pub fn write_geojson(pc: PioCollection) -> Result<()> {
     std::fs::write(format!("{}.geojson", pc.layer), pgj.unwrap())?;
     Ok(())
 }
+
+pub fn to_point(lat: f64, lon: f64) -> Option<Geometry> {
+    Some(Geometry::Point(Point::new(lat, lon)))
+}
+
 
 #[allow(dead_code)]
 pub fn to_polars(data: OsmCollection) -> Result<DataFrame> {

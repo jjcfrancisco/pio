@@ -2,6 +2,7 @@ use geo::Geometry;
 
 pub mod omt;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct Pio {
     pub osm_id: i64,
     pub osm_type: String,
@@ -9,6 +10,7 @@ pub struct Pio {
     pub class: String,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct PioCollection {
     pub objects: Vec<Pio>,
     pub layer: String,
