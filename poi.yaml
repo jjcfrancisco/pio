@@ -1,21 +1,22 @@
-# geometry_types: polygon
+schema: omt
+
 geometry_types:
 - Point
 - Polygon
 
 fields:
 - name: name
-  type: string
+  field_type: string
 - name: name:en
-  type: string
+  field_type: string
   rename_to: name_en
 - name: name:de
-  type: string
+  field_type: string
   rename_to: name_de
 - name: level
-  type: integer
+  field_type: integer
 - name: indoor
-  type: boolean
+  field_type: boolean
 
 class:
   - key: barrier
@@ -180,6 +181,7 @@ class:
             'newsagent', 'optician', 'outdoor', 'paint', 'perfumery', 'perfume', 'pet', 'photo', 'second_hand', 
             'shoes', 'sports', 'stationery', 'tailor', 'tattoo', 'ticket', 'tobacco', 'toys', 'travel_agency',
             'watches', 'weapons', 'wholesale']
+    then: SOMETHING
   - key: amenity
     values: ['accountant', 'advertising_agency', 'architect', 'association', 'bail_bond_agent', 'charity',
             'company', 'construction_company', 'consulting', 'cooperative', 'courier', 'coworking', 'diplomatic',
@@ -214,8 +216,10 @@ class:
     then: entrance
   - key: camp_site
     values: ['camp_site', 'caravan_site']
+    then: SOMETHING
   - key: laundry
     values: ['laundry', 'dry_cleaning']
+    then: SOMETHING
   - key: amenity
     values: ['supermarket', 'deli', 'delicatessen', 'department_store', 'greengrocer', 'marketplace']
     then: grocery
@@ -242,6 +246,7 @@ class:
     then: school
   - key: alcohol_shop
     values: ['alcohol', 'beverages', 'wine']
+    then: SOMETHING
   - key: bar
     values: ['bar', 'nightclub']
     then: amenity
@@ -262,13 +267,16 @@ class:
     then: cemetery
   - key: attraction
     values: ['attraction', 'viewpoint']
+    then: SOMETHING
   - key: amenity
     values: ['biergarten', 'pub']
     then: beer
   - key: music
     values: ['music', 'musical_instrument']
+    then: SOMETHING
   - key: stadium
     values: ['american_football', 'stadium', 'soccer']
+    then: SOMETHING
   - key: amenity
     values: ['art', 'artwork', 'gallery', 'arts_centre']
     then: art_gallery
