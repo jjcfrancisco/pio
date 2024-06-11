@@ -1,4 +1,4 @@
-use crate::osmpbf::{Osm, Property};
+use crate::osmpbf::{OsmCollection, Property};
 use crate::schema::PioCollection;
 use crate::Result;
 pub mod config;
@@ -7,7 +7,6 @@ use geo::Geometry;
 use geojson::{Feature, FeatureCollection, GeoJson, JsonObject, JsonValue};
 use polars::prelude::*;
 use serde_json::to_string_pretty;
-use std::collections::HashMap;
 use wkt::ToWkt;
 
 pub fn write_geojson(pc: PioCollection) -> Result<()> {
@@ -43,19 +42,20 @@ pub fn write_geojson(pc: PioCollection) -> Result<()> {
     if pgj.is_err() {
         return Err("Cannot format GeoJSON feature collection".into());
     }
-    std::fs::write("melilla.geojson", pgj.unwrap())?;
+    // Use PioCollection layer name as filename
+    std::fs::write(format!("{}.geojson", pc.layer), pgj.unwrap())?;
     Ok(())
 }
 
 #[allow(dead_code)]
-pub fn to_polars(data: HashMap<i64, Osm>) -> Result<DataFrame> {
+pub fn to_polars(data: OsmCollection) -> Result<DataFrame> {
     let mut ids = Vec::new();
     let mut geometries: Vec<String> = Vec::new();
     let mut geometry_types = Vec::new();
     let mut properties: Vec<Property> = Vec::new();
     let mut osm_types = Vec::new();
 
-    for (_, osm) in data.iter() {
+    for (_, osm) in data.objects.iter() {
         ids.push(osm.id);
         osm_types.push(osm.osm_type.clone());
         let geometry = &osm.geometry;

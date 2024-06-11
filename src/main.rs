@@ -7,10 +7,11 @@ mod utils;
 
 use std::collections::HashMap;
 
-use osmpbf::{process_lines_and_polygons, read_nodes_from_osmpbf, Osm};
-use schema::apply;
+use osmpbf::{read_osmpbf, Osm};
+use schema::omt;
 use utils::write_geojson;
 
+// Here for debugging purposes. Remove when not needed
 #[allow(dead_code)]
 fn print_data(data: &HashMap<i64, Osm>) {
     for (id, osm) in data {
@@ -22,15 +23,12 @@ fn print_data(data: &HashMap<i64, Osm>) {
 }
 
 fn main() -> Result<()> {
-    let osmpbf_file = "melilla-latest.osm.pbf";
-    // Reads read nodes
-    let raw_data = read_nodes_from_osmpbf(osmpbf_file)?;
-    // Reads lines and polygons
-    let data = process_lines_and_polygons(osmpbf_file, raw_data)?;
+    // Gets osm data
+    let osm = read_osmpbf("melilla-latest.osm.pbf")?;
     // Process data
-    let data = apply("poi.yaml", data)?;
+    let omt = omt::apply("poi.yaml", osm)?;
 
     // Save data to GeoJSON
-    write_geojson(data)?;
+    write_geojson(omt)?;
     Ok(())
 }

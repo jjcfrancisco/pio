@@ -4,6 +4,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct Config {
     pub schema: String,
+    pub layer: String,
     pub geometry_types: Vec<String>,
     pub fields: Vec<Field>,
     pub class: Vec<Kvat>,
@@ -43,6 +44,7 @@ mod tests {
     fn test_read_yaml() {
         let yaml = "
         schema: omt
+        layer: test
         geometry_types:
           - Point
           - LineString
@@ -68,6 +70,7 @@ mod tests {
             deser,
             Config {
                 schema: "omt".to_string(),
+                layer: "test".to_string(),
                 geometry_types: vec![
                     "Point".to_string(),
                     "LineString".to_string(),
