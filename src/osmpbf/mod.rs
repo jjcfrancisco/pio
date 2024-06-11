@@ -19,104 +19,61 @@ pub struct Osm {
     pub geometry_type: Option<String>,
 }
 
-// Create a dataframe from the osmpbf data
-#[allow(dead_code)]
-pub fn read_nodes_from_osmpbf_polars(path: &str) -> Result<DataFrame> {
-    let reader = ElementReader::from_path(path)?;
-    let mut ids = Vec::new();
-    let mut geometries = Vec::new();
-    let mut geometry_types = Vec::new();
-    let mut properties: Vec<Property> = Vec::new();
-    reader.for_each(|element| match element {
-        Element::Node(n) => {
-            ids.push(n.id());
-            geometries.push(Point::new(n.lat(), n.lon()).wkt_string());
-            geometry_types.push("Point");
-            for (key, value) in n.tags() {
-                properties.push(Property {
-                    key: key.to_string(),
-                    value: value.to_string(),
-                });
-            }
-        }
-        Element::DenseNode(d) => {
-            ids.push(d.id());
-            geometries.push(Point::new(d.lat(), d.lon()).wkt_string());
-            geometry_types.push("Point");
-            for (key, value) in d.tags() {
-                properties.push(Property {
-                    key: key.to_string(),
-                    value: value.to_string(),
-                });
-            }
-        }
-        Element::Way(_) => {}
-        Element::Relation(_) => {}
-    })?;
-
-    // Create a dataframe
-    let mut df = DataFrame::new(vec![
-        Series::new("id", ids),
-        Series::new("osm_type", vec!["node"]),
-        Series::new("geometry", geometries),
-        Series::new("geometry_type", geometry_types),
-    ])?;
-
-    for prop in properties {
-        let s = Series::new(&prop.key, vec![prop.value]);
-        df.with_column(s)?;
-    }
-
-    println!("DataFrame: {:?}", df);
-
-    Ok(df)
+pub struct OsmCollection {
+    pub objects: HashMap<i64, Osm>,
 }
 
-pub fn read_nodes_from_osmpbf(path: &str) -> Result<HashMap<i64, Osm>> {
+impl OsmCollection {
+    pub fn new() -> Self {
+        OsmCollection {
+            objects: HashMap::new(),
+        }
+    }
+
+    pub fn add(&mut self, object: Osm) {
+        self.objects.insert(object.id, object);
+    }
+}
+
+pub fn read_nodes_from_osmpbf(path: &str) -> Result<OsmCollection> {
     let reader = ElementReader::from_path(path)?;
-    let mut nodes: HashMap<i64, Osm> = HashMap::new();
+    let mut nodes = OsmCollection::new();
     reader.for_each(|element| match element {
         Element::Node(n) => {
-            nodes.insert(
-                n.id(),
-                Osm {
-                    id: n.id(),
-                    osm_type: "node".to_string(),
-                    properties: {
-                        let mut properties = Vec::new();
-                        for (key, value) in n.tags() {
-                            properties.push(Property {
-                                key: key.to_string(),
-                                value: value.to_string(),
-                            });
-                        }
-                        properties
-                    },
-                    geometry: to_point(n.lat(), n.lon()),
-                    geometry_type: Some("Point".to_string()),
+            nodes.add(Osm {
+                id: n.id(),
+                osm_type: "node".to_string(),
+                properties: {
+                    let mut properties = Vec::new();
+                    for (key, value) in n.tags() {
+                        properties.push(Property {
+                            key: key.to_string(),
+                            value: value.to_string(),
+                        });
+                    }
+                    properties
                 },
-            );
+                geometry: to_point(n.lat(), n.lon()),
+                geometry_type: Some("Point".to_string()),
+            });
         }
         Element::DenseNode(d) => {
-            nodes.insert(
-                d.id(),
-                Osm {
-                    id: d.id(),
-                    osm_type: "node".to_string(),
-                    properties: {
-                        let mut properties = Vec::new();
-                        for (key, value) in d.tags() {
-                            properties.push(Property {
-                                key: key.to_string(),
-                                value: value.to_string(),
-                            });
-                        }
-                        properties
-                    },
-                    geometry: to_point(d.lon(), d.lat()),
-                    geometry_type: Some("Point".to_string()),
+            nodes.add(Osm {
+                id: d.id(),
+                osm_type: "node".to_string(),
+                properties: {
+                    let mut properties = Vec::new();
+                    for (key, value) in d.tags() {
+                        properties.push(Property {
+                            key: key.to_string(),
+                            value: value.to_string(),
+                        });
+                    }
+                    properties
                 },
-            );
+                geometry: to_point(d.lat(), d.lon()),
+                geometry_type: Some("Point".to_string()),
+            });
         }
         // Empty match arm to satisfy the compiler
         Element::Way(_) => (),
@@ -128,9 +85,9 @@ pub fn read_nodes_from_osmpbf(path: &str) -> Result<HashMap<i64, Osm>> {
 
 pub fn process_lines_and_polygons(
     path: &str,
-    data: HashMap<i64, Osm>,
-) -> Result<HashMap<i64, Osm>> {
-    let mut data = data;
+    oc: OsmCollection,
+) -> Result<OsmCollection> {
+    let mut data = oc;
     let reader = ElementReader::from_path(path)?;
     reader.for_each(|element| match element {
         Element::Node(_) => (),
@@ -155,13 +112,11 @@ pub fn process_lines_and_polygons(
             let refs = w.refs();
             let mut geom: Vec<Coord> = Vec::new();
             for ref_id in refs {
-                let node = data.get(&ref_id);
+                let node = data.objects.get(&ref_id);
                 if node.is_some() {
                     let node = node.unwrap();
                     match &node.geometry {
-                        Some(Geometry::Point(p)) => {
-                            geom.push(coord! {x: p.x(), y: p.y()})
-                        }
+                        Some(Geometry::Point(p)) => geom.push(coord! {x: p.x(), y: p.y()}),
                         Some(Geometry::LineString(ls)) => {
                             geom.extend(ls.coords_iter().map(|c| c).collect::<Vec<Coord>>())
                         }
@@ -176,7 +131,7 @@ pub fn process_lines_and_polygons(
                 osm.geometry_type = Some("LineString".to_string());
                 osm.geometry = Some(Geometry::LineString(LineString(geom)))
             };
-            data.insert(w.id(), osm);
+            data.add(osm);
         }
         Element::Relation(_) => (),
     })?;
@@ -235,6 +190,59 @@ fn to_polars(data: HashMap<i64, Osm>) -> Result<DataFrame> {
         let s = Series::new(&prop.key, vec![prop.value]);
         df.with_column(s)?;
     }
+
+    Ok(df)
+}
+
+// Create a dataframe from the osmpbf data
+#[allow(dead_code)]
+pub fn read_nodes_from_osmpbf_polars(path: &str) -> Result<DataFrame> {
+    let reader = ElementReader::from_path(path)?;
+    let mut ids = Vec::new();
+    let mut geometries = Vec::new();
+    let mut geometry_types = Vec::new();
+    let mut properties: Vec<Property> = Vec::new();
+    reader.for_each(|element| match element {
+        Element::Node(n) => {
+            ids.push(n.id());
+            geometries.push(Point::new(n.lat(), n.lon()).wkt_string());
+            geometry_types.push("Point");
+            for (key, value) in n.tags() {
+                properties.push(Property {
+                    key: key.to_string(),
+                    value: value.to_string(),
+                });
+            }
+        }
+        Element::DenseNode(d) => {
+            ids.push(d.id());
+            geometries.push(Point::new(d.lat(), d.lon()).wkt_string());
+            geometry_types.push("Point");
+            for (key, value) in d.tags() {
+                properties.push(Property {
+                    key: key.to_string(),
+                    value: value.to_string(),
+                });
+            }
+        }
+        Element::Way(_) => {}
+        Element::Relation(_) => {}
+    })?;
+
+    // Create a dataframe
+    let mut df = DataFrame::new(vec![
+        Series::new("id", ids),
+        Series::new("osm_type", vec!["node"]),
+        Series::new("geometry", geometries),
+        Series::new("geometry_type", geometry_types),
+    ])?;
+
+    for prop in properties {
+        let s = Series::new(&prop.key, vec![prop.value]);
+        df.with_column(s)?;
+    }
+
+    println!("DataFrame: {:?}", df);
 
     Ok(df)
 }

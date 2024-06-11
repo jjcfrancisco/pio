@@ -1,9 +1,8 @@
 use geo::Geometry;
-use std::collections::HashMap;
 
-use crate::utils::read_yaml;
-use crate::utils::Config;
+use crate::utils::config::{Config, read_yaml};
 use crate::{osmpbf::Osm, Result};
+use crate::osmpbf::OsmCollection;
 
 pub struct Pio {
     pub osm_id: i64,
@@ -60,14 +59,14 @@ pub fn with_config(config: &Config, osm: &Osm) -> Option<Pio> {
     });
 }
 
-pub fn apply(yaml_file: &str, data: HashMap<i64, Osm>) -> Result<PioCollection> {
+pub fn apply(yaml_file: &str, data: OsmCollection) -> Result<PioCollection> {
     // Read YAML configuration
     let config = read_yaml(yaml_file)?;
 
     let mut pio_objects = PioCollection::new();
 
     // Iterate over data
-    for (_, osm) in data.iter() {
+    for (_, osm) in data.objects.iter() {
         // Available: osm.id, osm.osm_type, osm.properties, osm.geometry
         let pio = with_config(&config, osm);
         match pio {
