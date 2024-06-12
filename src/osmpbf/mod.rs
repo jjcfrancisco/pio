@@ -1,5 +1,5 @@
-use crate::Result;
 use crate::utils::to_point;
+use crate::Result;
 use geo::{coord, Coord, CoordsIter, Geometry, LineString, Polygon};
 use osmpbf::{Element, ElementReader};
 use std::collections::HashMap;
@@ -10,16 +10,28 @@ pub struct Property {
     pub value: String,
 }
 
+#[derive(Debug)]
 pub struct Osm {
     pub id: i64,
     pub osm_type: String,
-    pub properties: Vec<Property>,
+    pub properties: HashMap<String, Property>,
     pub geometry: Option<Geometry>,
     pub geometry_type: Option<String>,
 }
 
 pub struct OsmCollection {
     pub objects: HashMap<i64, Osm>,
+}
+
+impl Osm {
+    // Get a value from a key from the properties
+    pub fn get(&self, key: &str) -> Option<String> {
+        let prop = self.properties.get(key);
+        match prop {
+            Some(prop) => Some(prop.value.clone()),
+            None => None,
+        }
+    }
 }
 
 impl OsmCollection {
@@ -50,12 +62,15 @@ fn read_nodes_from_osmpbf(path: &str) -> Result<OsmCollection> {
                 id: n.id(),
                 osm_type: "node".to_string(),
                 properties: {
-                    let mut properties = Vec::new();
+                    let mut properties = HashMap::new();
                     for (key, value) in n.tags() {
-                        properties.push(Property {
-                            key: key.to_string(),
-                            value: value.to_string(),
-                        });
+                        properties.insert(
+                            key.to_string(),
+                            Property {
+                                key: key.to_string(),
+                                value: value.to_string(),
+                            },
+                        );
                     }
                     properties
                 },
@@ -68,12 +83,15 @@ fn read_nodes_from_osmpbf(path: &str) -> Result<OsmCollection> {
                 id: d.id(),
                 osm_type: "node".to_string(),
                 properties: {
-                    let mut properties = Vec::new();
+                    let mut properties = HashMap::new();
                     for (key, value) in d.tags() {
-                        properties.push(Property {
-                            key: key.to_string(),
-                            value: value.to_string(),
-                        });
+                        properties.insert(
+                            key.to_string(),
+                            Property {
+                                key: key.to_string(),
+                                value: value.to_string(),
+                            },
+                        );
                     }
                     properties
                 },
@@ -100,12 +118,15 @@ fn process_lines_and_polygons(path: &str, oc: OsmCollection) -> Result<OsmCollec
                 id: w.id(),
                 osm_type: "way".to_string(),
                 properties: {
-                    let mut properties = Vec::new();
+                    let mut properties = HashMap::new();
                     for (key, value) in w.tags() {
-                        properties.push(Property {
-                            key: key.to_string(),
-                            value: value.to_string(),
-                        });
+                        properties.insert(
+                            key.to_string(),
+                            Property {
+                                key: key.to_string(),
+                                value: value.to_string(),
+                            },
+                        );
                     }
                     properties
                 },
@@ -149,14 +170,18 @@ mod tests {
 
     #[test]
     fn test_read_osmpbf() {
-        let osm = read_osmpbf("tests/melilla-latest.osm.pbf").expect("Failed to read test OSM PBF file");
+        let osm =
+            read_osmpbf("tests/melilla-latest.osm.pbf").expect("Failed to read test OSM PBF file");
         assert_eq!(osm.objects.len(), 79114);
     }
 
     #[test]
     fn test_process_lines_and_polygons() {
-        let nodes = read_nodes_from_osmpbf("tests/melilla-latest.osm.pbf").expect("Failed to read nodes from OSM PBF file");
-        let nodes_ways_relations = process_lines_and_polygons("tests/melilla-latest.osm.pbf", nodes).expect("Failed to process lines and polygons");
+        let nodes = read_nodes_from_osmpbf("tests/melilla-latest.osm.pbf")
+            .expect("Failed to read nodes from OSM PBF file");
+        let nodes_ways_relations =
+            process_lines_and_polygons("tests/melilla-latest.osm.pbf", nodes)
+                .expect("Failed to process lines and polygons");
         // Assert per type
         let mut points = 0;
         let mut lines = 0;

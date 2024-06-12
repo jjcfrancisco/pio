@@ -14,10 +14,17 @@ fields:
 - name: name:de
   field_type: string
   rename_to: name_de
+- name: layer
+  field_type: integer
 - name: level
   field_type: integer
 - name: indoor
   field_type: boolean
+  mapping:
+    - key: yes
+      value: true
+    - key: no
+      value: false
 
 class:
   - key: barrier

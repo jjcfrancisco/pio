@@ -1,49 +1,108 @@
-use crate::utils::config::{Config, read_yaml};
-use crate::{osmpbf::Osm, Result};
 use crate::osmpbf::OsmCollection;
-use crate::schema::{Pio, PioCollection};
+use crate::schema::{Pio, PioCollection, PropertyValue};
+use crate::utils::config::{read_yaml, Config};
+use crate::{osmpbf::Osm, Result};
+use std::collections::HashMap;
+
+fn apply_fields(config: &Config, osm: &Osm) -> Option<(String, PropertyValue)> {
+    for field in &config.fields {
+        if let Some(prop) = osm.properties.get(&field.name) {
+            if let Some(mapping) = &field.mapping {
+                for m in mapping {
+                    if m.key == prop.value {
+                        let field_name = field.rename_to.clone().unwrap_or(field.name.clone());
+                        let value = match field.field_type.as_str() {
+                            "boolean" => PropertyValue::Boolean(m.value.parse().unwrap()),
+                            "integer" => PropertyValue::Integer(m.value.parse().unwrap()),
+                            "float" => PropertyValue::Float(m.value.parse().unwrap()),
+                            _ => PropertyValue::Text(m.value.clone()),
+                        };
+                        return Some((field_name, value));
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
+fn apply_class(config: &Config, osm: &Osm) -> Option<PropertyValue> {
+    if config.class.is_some() {
+        let class_objects = config.class.as_ref().unwrap();
+        for class_object in class_objects {
+            let prop = osm.properties.get(&class_object.key);
+            if class_object.and.is_some() {
+                let and = class_object.and.as_ref().unwrap();
+                if prop.is_some() {
+                    let prop = prop.unwrap();
+                    if class_object.key == prop.key
+                        && class_object.values.contains(&prop.value)
+                        && and.iter().all(|a| {
+                            let prop = osm.properties.get(&a.key);
+                            if prop.is_some() {
+                                let prop = prop.unwrap();
+                                a.values.contains(&prop.value)
+                            } else {
+                                false
+                            }
+                        })
+                    {
+                        return Some(PropertyValue::Text(class_object.then.clone()));
+                    }
+                }
+            } else {
+                // Process 'class' members without AND
+                if prop.is_some() {
+                    let prop = prop.unwrap();
+                    if class_object.key == prop.key && class_object.values.contains(&prop.value) {
+                        return Some(PropertyValue::Text(class_object.then.clone()));
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
 
 fn to_omt(config: &Config, osm: &Osm) -> Option<Pio> {
-    let mut pio_class = String::new();
+    let mut properties: HashMap<String, PropertyValue> = HashMap::new();
 
     let allowed_geom_types = &config.geometry_types;
-    let props = &osm.properties;
     match &osm.geometry_type {
         Some(geom_type) => {
             // Checks if the geometry type is in the configuration
             if allowed_geom_types.contains(&geom_type) {
-                for prop in props {
-                    config.class.iter().for_each(|class| {
-                        if class.and.is_some() {
-                            let and = class.and.as_ref().unwrap();
-                            if class.key == prop
-                                .key
-                                && class.values.contains(&prop.value)
-                                && and.iter().all(|a| {
-                                    props.iter().any(|p| a.key == p.key && a.values.contains(&p.value))
-                                })
-                            {
-                                pio_class = class.then.clone();
-                            }
-                        } else if class.key == prop.key && class.values.contains(&prop.value) {
-                            pio_class = class.then.clone();
-                        }
-                    });
+                // Checks if provided YAML has class
+                if config.class.is_some() {
+                    // If class, apply class
+                    let class = apply_class(config, osm);
+                    if class.is_some() {
+                        properties.insert("class".to_string(), class.unwrap());
+                    }
+                    // Apply fields
+                    let field = apply_fields(config, osm);
+                    if field.is_some() {
+                        let (field_name, value) = field.unwrap();
+                        properties.insert(field_name, value);
+                    }
                 }
+            } else {
+                // If the geometry type is not in the configuration, ignore the object altogether
+                return None;
             }
         }
+        // If the geometry type is not provided, ignore the object altogether as well
         None => {}
     };
 
-    if pio_class.is_empty() {
-        return None;
-    }
-    return Some(Pio {
+    Some(Pio {
         osm_id: osm.id,
         osm_type: osm.osm_type.clone(),
         geometry: osm.geometry.clone().unwrap(),
-        class: pio_class,
-    });
+        properties,
+    })
 }
 
 pub fn apply(yaml_file: &str, data: OsmCollection) -> Result<PioCollection> {
@@ -71,19 +130,171 @@ pub fn apply(yaml_file: &str, data: OsmCollection) -> Result<PioCollection> {
 // Unit tests
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use super::*;
+    use geo::{Point, Geometry};
+    use crate::osmpbf::Property;
 
-    // #[test]
-    //
-    // let yaml = "
-    //     service:
-    //       key: highway
-    //       values: service
-    // ";
+    #[test]
+    fn test_apply_fields() {
+        let yaml = "
+        schema: omt
+        layer: test
+        geometry_types:
+          - Point
+          - LineString
+          - Polygon
+        fields:
+          - name: name:en
+            field_type: boolean
+            rename_to: name_en
+            mapping:
+                - key: yes
+                  value: true
+                - key: no
+                  value: false
+        class:
+          - key: amenity
+            values: ['bus_stop', 'bus_station']
+            then: bus
+          - key: railway
+            values: ['halt', 'tram_stop', 'subway']
+            and:
+              - key: railway
+                values: ['station']
+            then: railway
+        ";
 
-    // fn test_to_point() {
-    //     let point = to_point(1.0, 2.0);
-    //     assert_eq!(point, Some(Geometry::Point(Point::new(1.0, 2.0))));
-    // }
+        let deser: Config = serde_yaml::from_str(&yaml).unwrap();
+        let osm = Osm {
+            id: 1,
+            osm_type: "node".to_string(),
+            properties: {
+                let mut properties = HashMap::new();
+                properties.insert("name:en".to_string(), Property {
+                    key: "name:en".to_string(),
+                    value: "yes".to_string(),
+                });
+                properties
+            },
+            geometry: None,
+            geometry_type: None,
+        };
+
+        let field = apply_fields(&deser, &osm);
+        assert_eq!(field, Some(("name_en".to_string(), PropertyValue::Boolean(true))));
+    }
+
+    #[test]
+    fn test_apply_class() {
+        let yaml = "
+        schema: omt
+        layer: test
+        geometry_types:
+          - Point
+          - LineString
+          - Polygon
+        fields:
+          - name: name:en
+            field_type: boolean
+            rename_to: name_en
+            mapping:
+                - key: yes
+                  value: true
+                - key: no
+                  value: false
+        class:
+          - key: amenity
+            values: ['bus_stop', 'bus_station']
+            then: bus
+          - key: railway
+            values: ['halt', 'tram_stop', 'subway']
+            and:
+              - key: railway
+                values: ['station']
+            then: railway
+        ";
+
+        let deser: Config = serde_yaml::from_str(&yaml).unwrap();
+        let osm = Osm {
+            id: 1,
+            osm_type: "node".to_string(),
+            properties: {
+                let mut properties = HashMap::new();
+                properties.insert("amenity".to_string(), Property {
+                    key: "amenity".to_string(),
+                    value: "bus_stop".to_string(),
+                });
+                properties
+            },
+            geometry: None,
+            geometry_type: None,
+        };
+
+        let class = apply_class(&deser, &osm);
+        assert_eq!(class, Some(PropertyValue::Text("bus".to_string())));
+    }
+
+    #[test]
+    fn test_to_omt() {
+        let yaml = "
+        schema: omt
+        layer: test
+        geometry_types:
+          - Point
+          - LineString
+          - Polygon
+        fields:
+          - name: name:en
+            field_type: boolean
+            rename_to: name_en
+            mapping:
+                - key: yes
+                  value: true
+                - key: no
+                  value: false
+        class:
+          - key: amenity
+            values: ['bus_stop', 'bus_station']
+            then: bus
+          - key: railway
+            values: ['halt', 'tram_stop', 'subway']
+            and:
+              - key: railway
+                values: ['station']
+            then: railway
+        ";
+
+        let deser: Config = serde_yaml::from_str(&yaml).unwrap();
+        let osm = Osm {
+            id: 1,
+            osm_type: "node".to_string(),
+            properties: {
+                let mut properties = HashMap::new();
+                properties.insert("amenity".to_string(), Property {
+                    key: "amenity".to_string(),
+                    value: "bus_stop".to_string(),
+                });
+                properties.insert("name:en".to_string(), Property {
+                    key: "name:en".to_string(),
+                    value: "yes".to_string(),
+                });
+                properties
+            },
+            geometry: Some(Geometry::Point(Point::new(1.0, 2.0))),
+            geometry_type: Some("Point".to_string()),
+        };
+
+        let pio = to_omt(&deser, &osm);
+        assert_eq!(pio, Some(Pio {
+            osm_id: 1,
+            osm_type: "node".to_string(),
+            geometry: Geometry::Point(Point::new(1.0, 2.0)),
+            properties: {
+                let mut properties = HashMap::new();
+                properties.insert("class".to_string(), PropertyValue::Text("bus".to_string()));
+                properties.insert("name_en".to_string(), PropertyValue::Boolean(true));
+                properties
+            },
+        }));
+    }
 }
-

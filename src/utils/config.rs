@@ -7,25 +7,31 @@ pub struct Config {
     pub layer: String,
     pub geometry_types: Vec<String>,
     pub fields: Vec<Field>,
-    pub class: Vec<Kvat>,
+    pub class: Option<Vec<Kvat>>,
 }
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct Field {
     pub name: String,
     pub field_type: String,
     pub rename_to: Option<String>,
+    pub mapping: Option<Vec<Kv>>,
 }
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct Kvat {
     pub key: String,
     pub values: Vec<String>,
-    pub and: Option<Vec<Kv>>,
+    pub and: Option<Vec<Kvs>>,
     pub then: String,
+}
+#[derive(Debug, Deserialize, PartialEq)]
+pub struct Kvs {
+    pub key: String,
+    pub values: Vec<String>,
 }
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct Kv {
     pub key: String,
-    pub values: Vec<String>,
+    pub value: String,
 }
 
 // Read file to YAML
@@ -53,6 +59,11 @@ mod tests {
           - name: name:en
             field_type: string
             rename_to: name_en
+            mapping:
+                - key: yes
+                  value: true
+                - key: no
+                  value: false
         class:
           - key: amenity
             values: ['bus_stop', 'bus_station']
@@ -80,8 +91,18 @@ mod tests {
                     name: "name:en".to_string(),
                     field_type: "string".to_string(),
                     rename_to: Some("name_en".to_string()),
+                    mapping: Some(vec![
+                        Kv {
+                            key: "yes".to_string(),
+                            value: "true".to_string()
+                        },
+                        Kv {
+                            key: "no".to_string(),
+                            value: "false".to_string()
+                        }
+                    ])
                 }],
-                class: vec![
+                class: Some(vec![
                     Kvat {
                         key: "amenity".to_string(),
                         values: vec!["bus_stop".to_string(), "bus_station".to_string()],
@@ -95,13 +116,13 @@ mod tests {
                             "tram_stop".to_string(),
                             "subway".to_string()
                         ],
-                        and: Some(vec![Kv {
+                        and: Some(vec![Kvs {
                             key: "railway".to_string(),
                             values: vec!["station".to_string()],
                         }]),
                         then: "railway".to_string(),
                     }
-                ]
+                ])
             }
         );
     }

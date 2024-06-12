@@ -1,30 +1,51 @@
-use crate::osmpbf::{OsmCollection, Property};
-use crate::schema::PioCollection;
+use crate::schema::{PioCollection, PropertyValue};
 use crate::Result;
 pub mod config;
 
 use geo::{Geometry, Point};
 use geojson::{Feature, FeatureCollection, GeoJson, JsonObject, JsonValue};
-use polars::prelude::*;
 use serde_json::to_string_pretty;
-use wkt::ToWkt;
 
 pub fn write_geojson(pc: PioCollection) -> Result<()> {
     let features: Vec<Feature> = pc
         .objects
         .iter()
-        .map(|object| Feature {
+        .map(|pio| Feature {
             bbox: None,
-            geometry: Some((&object.geometry.clone()).into()),
-            id: Some(geojson::feature::Id::String(object.osm_id.to_string())),
+            geometry: Some((&pio.geometry.clone()).into()),
+            id: Some(geojson::feature::Id::String(pio.osm_id.to_string())),
             properties: {
                 // Iterate over properties to create JsonObject
                 let mut properties = JsonObject::new();
                 properties.insert(
                     "osm_type".to_string(),
-                    JsonValue::from(object.osm_type.clone()),
+                    JsonValue::from(pio.osm_type.clone()),
                 );
-                properties.insert("class".to_string(), JsonValue::from(object.class.clone()));
+                for (key, value) in &pio.properties {
+                    match value {
+                        PropertyValue::Integer(i) => {
+                            // Insert as i64
+                            properties.insert(key.clone(), JsonValue::from(*i));
+                        }
+                        PropertyValue::Float(f) => {
+                            properties.insert(key.clone(), JsonValue::from(*f));
+                        }
+                        PropertyValue::Text(t) => {
+                            properties.insert(key.clone(), JsonValue::from(t.clone()));
+                        }
+                        PropertyValue::Boolean(b) => {
+                            properties.insert(key.clone(), JsonValue::from(*b));
+                        }
+                    }
+                    // properties.insert(key.clone(), JsonValue::from({
+                    //     match value {
+                    //         PropertyValue::Integer(i) => i.to_string(),
+                    //         PropertyValue::Float(f) => f.to_string(),
+                    //         PropertyValue::Text(t) => t.clone(),
+                    //         PropertyValue::Boolean(b) => b.to_string(),
+                    //     }
+                    // }));
+                }
                 Some(properties)
             },
             foreign_members: None,
@@ -51,54 +72,3 @@ pub fn to_point(lat: f64, lon: f64) -> Option<Geometry> {
     Some(Geometry::Point(Point::new(lat, lon)))
 }
 
-
-#[allow(dead_code)]
-pub fn to_polars(data: OsmCollection) -> Result<DataFrame> {
-    let mut ids = Vec::new();
-    let mut geometries: Vec<String> = Vec::new();
-    let mut geometry_types = Vec::new();
-    let mut properties: Vec<Property> = Vec::new();
-    let mut osm_types = Vec::new();
-
-    for (_, osm) in data.objects.iter() {
-        ids.push(osm.id);
-        osm_types.push(osm.osm_type.clone());
-        let geometry = &osm.geometry;
-        match geometry {
-            Some(Geometry::Point(p)) => {
-                geometries.push(p.wkt_string());
-                geometry_types.push("Point");
-            }
-            Some(Geometry::LineString(ls)) => {
-                geometries.push(ls.wkt_string());
-                geometry_types.push("LineString");
-            }
-            Some(Geometry::Polygon(p)) => {
-                geometries.push(p.wkt_string());
-                geometry_types.push("Polygon");
-            }
-            _ => panic!("Geometry not supported"),
-        };
-        for prop in &osm.properties {
-            properties.push(Property {
-                key: prop.key.clone(),
-                value: prop.value.clone(),
-            });
-        }
-    }
-
-    // Create a dataframe
-    let mut df = DataFrame::new(vec![
-        Series::new("id", ids),
-        Series::new("osm_type", osm_types),
-        Series::new("geometry", geometries),
-        Series::new("geometry_type", geometry_types),
-    ])?;
-
-    for prop in properties {
-        let s = Series::new(&prop.key, vec![prop.value]);
-        df.with_column(s)?;
-    }
-
-    Ok(df)
-}
