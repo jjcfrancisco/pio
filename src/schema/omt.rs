@@ -1,4 +1,5 @@
-use crate::osmpbf::OsmCollection;
+use crate::osmpbf;
+use crate::schema;
 use crate::schema::{Pio, PioCollection, PropertyValue};
 use crate::utils::config::{read_yaml, Config};
 use crate::{osmpbf::Osm, Result};
@@ -67,26 +68,78 @@ fn apply_class(config: &Config, osm: &Osm) -> Option<PropertyValue> {
 }
 
 fn to_omt(config: &Config, osm: &Osm) -> Option<Pio> {
-    let mut properties: HashMap<String, PropertyValue> = HashMap::new();
 
     let allowed_geom_types = &config.geometry_types;
-    match &osm.geometry_type {
+    let pio = match &osm.geometry_type {
         Some(geom_type) => {
             // Checks if the geometry type is in the configuration
             if allowed_geom_types.contains(&geom_type) {
                 // Checks if provided YAML has class
                 if config.class.is_some() {
                     // If class, apply class
-                    let class = apply_class(config, osm);
-                    if class.is_some() {
-                        properties.insert("class".to_string(), class.unwrap());
-                    }
+                    let mut properties:Vec<schema::Property> = Vec::new();
+                    // if let Some(class) = config.class.as_ref().and_then(|_| apply_class(config, osm)) {
+                    //     properties.push(schema::Property {
+                    //         key: "class".to_string(),
+                    //         value: class,
+                    //     });
+                    // }
+                    // if let Some((field_name, value)) = apply_fields(config, osm) {
+                    //     properties.push(Property {
+                    //         key: field_name,
+                    //         value,
+                    //     });
+                    // }
+                    Some(Pio {
+                        osm_id: osm.id,
+                        osm_type: osm.osm_type.to_string(),
+                        geometry: None,  // Assuming geometry is always Some when geometry_type is Some
+                        properties,
+                    })
+
+
+
+
+
+
+                    // let class = apply_class(config, osm);
+                    // if class.is_some() {
+                    //     properties.push(Property {
+                    //         key: "class".to_string(),
+                    //         value: class.unwrap(),
+                    //     });
+                    // }
                     // Apply fields
-                    let field = apply_fields(config, osm);
-                    if field.is_some() {
-                        let (field_name, value) = field.unwrap();
-                        properties.insert(field_name, value);
-                    }
+                    // let field = apply_fields(config, osm);
+                    // if field.is_some() {
+                    //     let (field_name, value) = field.unwrap();
+                    //     properties.insert(field_name, value);
+                    // }
+                    // Some(Pio {
+                    //     osm_id: osm.id,
+                    //     osm_type: osm.osm_type.clone(),
+                    //     geometry: osm.geometry.clone().unwrap(),
+                    //     properties,
+                    // })
+                } else {
+                    // If no class, apply fields
+                    // let mut properties = Vec::new();
+                    // let field = apply_fields(config, osm);
+                    // if field.is_some() {
+                    //     let (field_name, value) = field.unwrap();
+                    //     properties.push(Property {
+                    //         key: field_name,
+                    //         value,
+                    //     });
+                    // }
+
+                    // Some(Pio {
+                    //     osm_id: osm.id,
+                    //     osm_type: osm.osm_type.clone(),
+                    //     geometry: osm.geometry.clone().unwrap(),
+                    //     properties,
+                    // })
+                    None
                 }
             } else {
                 // If the geometry type is not in the configuration, ignore the object altogether
@@ -94,18 +147,14 @@ fn to_omt(config: &Config, osm: &Osm) -> Option<Pio> {
             }
         }
         // If the geometry type is not provided, ignore the object altogether as well
-        None => {}
+        None => None
     };
 
-    Some(Pio {
-        osm_id: osm.id,
-        osm_type: osm.osm_type.clone(),
-        geometry: osm.geometry.clone().unwrap(),
-        properties,
-    })
+    pio
+
 }
 
-pub fn apply(yaml_file: &str, data: OsmCollection) -> Result<PioCollection> {
+pub fn apply(yaml_file: &str, data: osmpbf::OsmCollection) -> Result<PioCollection> {
     // Read YAML configuration
     let config = read_yaml(yaml_file)?;
 
@@ -115,16 +164,20 @@ pub fn apply(yaml_file: &str, data: OsmCollection) -> Result<PioCollection> {
     // Iterate over data
     for (_, osm) in data.objects.iter() {
         // Available: osm.id, osm.osm_type, osm.properties, osm.geometry
-        let pio = to_omt(&config, osm);
-        match pio {
-            Some(pio) => {
-                pc.add(pio);
-            }
-            None => {}
+        if let Some(pio) = to_omt(&config, osm) {
+            pc.add(pio);
         }
+        // let pio = to_omt(&config, osm);
+        // match pio {
+        //     Some(pio) => {
+        //         pc.add(pio);
+        //     }
+        //     None => {}
+        // }
     }
 
     Ok(pc)
+
 }
 
 // Unit tests

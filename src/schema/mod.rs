@@ -1,4 +1,4 @@
-use std::{collections::HashMap, i64};
+use std::i64;
 
 use geo::Geometry;
 
@@ -13,11 +13,17 @@ pub enum PropertyValue {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct Property {
+    pub key: String,
+    pub value: PropertyValue,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Pio {
     pub osm_id: i64,
     pub osm_type: String,
-    pub geometry: Geometry,
-    pub properties: HashMap<String, PropertyValue>,
+    pub geometry: Option<Geometry>,
+    pub properties: Vec<Property>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

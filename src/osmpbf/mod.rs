@@ -1,5 +1,8 @@
-use crate::utils::to_point;
+use crate::utils::geo::to_point;
 use crate::Result;
+
+mod process;
+
 use geo::{coord, Coord, CoordsIter, Geometry, LineString, Polygon};
 use osmpbf::{Element, ElementReader};
 use std::collections::HashMap;
@@ -19,19 +22,22 @@ pub struct Osm {
     pub geometry_type: Option<String>,
 }
 
-pub struct OsmCollection {
-    pub objects: HashMap<i64, Osm>,
+#[derive(Debug)]
+pub struct PropertyT {
+    pub key: &'static str,
+    pub value: &'static str,
 }
 
-impl Osm {
-    // Get a value from a key from the properties
-    pub fn get(&self, key: &str) -> Option<String> {
-        let prop = self.properties.get(key);
-        match prop {
-            Some(prop) => Some(prop.value.clone()),
-            None => None,
-        }
-    }
+#[derive(Debug)]
+pub struct OsmT {
+    pub id: i64,
+    pub osm_type: String,
+    pub properties: Vec<Property>,
+    pub geometry: Option<Geometry>,
+}
+
+pub struct OsmCollection {
+    pub objects: HashMap<i64, Osm>,
 }
 
 impl OsmCollection {
