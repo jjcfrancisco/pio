@@ -18,3 +18,7 @@ rusqlite = "0.31.0"
 postgres-protocol = "0.6.6"
 postgres = "0.19.7"
 clap = { version = "4.5.7", features = ["derive"] }
+tokio-postgres = "0.7.10"
+tokio = { version = "1.38.0", features = ["full"] }
+futures-util = "0.3.30"
+deadpool-postgres = "0.14.0"
