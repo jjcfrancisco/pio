@@ -3,6 +3,7 @@ use crate::Result;
 use deadpool_postgres::{Config, ManagerConfig, Object, Pool, RecyclingMethod, Runtime};
 use tokio_postgres::NoTls;
 
+#[allow(dead_code)]
 pub async fn create_pool(uri: &str) -> Result<Pool> {
     let mut cfg = Config::new();
     cfg.url = Some(uri.to_string());
@@ -14,14 +15,21 @@ pub async fn create_pool(uri: &str) -> Result<Pool> {
 }
 
 // Create table using Client from pool
+#[allow(dead_code)]
 pub async fn create_table(client: &Object) -> Result<()> {
-    client.execute("CREATE TABLE IF NOT EXISTS pio (
+    client
+        .execute(
+            "CREATE TABLE IF NOT EXISTS pio (
                     id BIGINT PRIMARY KEY,
                     properties JSONB,
-                    geometry geometry);", &[]).await?;
+                    geometry geometry);",
+            &[],
+        )
+        .await?;
     Ok(())
 }
 
+#[allow(dead_code)]
 pub async fn run_job(pool: &Pool) -> Result<()> {
     let client = match pool.get().await {
         Ok(client) => client,
@@ -63,8 +71,3 @@ pub async fn run_job(pool: &Pool) -> Result<()> {
 
     Ok(())
 }
-
-// "CREATE TABLE IF NOT EXISTS pio (
-// id BIGINT PRIMARY KEY,
-// properties JSONB NOT NULL,
-// geometry geometry NOT NULL);"

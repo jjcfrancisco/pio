@@ -1,7 +1,6 @@
-use geo::{Geometry, Point};
-use wkt::ToWkt;
+use geo::Point;
 
-pub fn to_point(lat: f64, lon: f64) -> Option<Geometry> {
-    Some(Geometry::Point(Point::new(lat, lon)))
+pub fn to_point(lat: f64, lon: f64) -> Option<Point> {
+    Some(Point::new(lat, lon))
 }
 

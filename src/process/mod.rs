@@ -1,37 +1,34 @@
 use crate::Result;
-use geo::Geometry;
+use wkb::geom_to_wkb;
+use geo::{Geometry, Point};
 use osmpbf::{Element, ElementReader};
-
-use postgres::CopyInWriter;
 use postgres::binary_copy::BinaryCopyInWriter;
 use postgres::types::Type;
+use postgres::CopyInWriter;
 
-#[derive(Debug)]
-pub struct Property {
-    pub key: &'static str,
-    pub value: &'static str,
-}
+pub mod bin_geom;
 
-#[derive(Debug)]
-pub struct Pio {
-    pub id: i64,
-    pub osm_type: String,
-    pub properties: Vec<Property>,
-    pub geometry: Option<Geometry>,
-}
-
-pub fn nodes<'a>(path: &str, writer: CopyInWriter<'a>) -> Result<()> {
-
-    let mut writer = BinaryCopyInWriter::new(writer, &[Type::INT4]);
+pub fn nodes<'a>(path: &str, writer: CopyInWriter<'a>, geom_type: Type) -> Result<()> {
+    let mut writer = BinaryCopyInWriter::new(writer, &[Type::INT4, geom_type]);
     let nodes_reader = ElementReader::from_path(path)?;
     nodes_reader.for_each(|element| match element {
         Element::Node(n) => {
             let id = n.id() as i32;
-            writer.write(&[&id]).expect("Failed to insert node into database");
+            let p = Geometry::Point(Point::new(n.lon(), n.lat()));
+            let t = geom_to_wkb(&p).expect("Failed to insert node into database");
+            let b = bin_geom::Wkb { geometry: t };
+            writer
+                .write(&[&id, &b])
+                .expect("Failed to insert node into database");
         }
         Element::DenseNode(d) => {
             let id = d.id() as i32;
-            writer.write(&[&id]).expect("Failed to insert node into database");
+            let p = Geometry::Point(Point::new(d.lon(), d.lat()));
+            let t = geom_to_wkb(&p).expect("Failed to insert node into database");
+            let b = bin_geom::Wkb { geometry: t };
+            writer
+                .write(&[&id, &b])
+                .expect("Failed to insert node into database");
         }
         _ => {}
     })?;
@@ -39,4 +36,3 @@ pub fn nodes<'a>(path: &str, writer: CopyInWriter<'a>) -> Result<()> {
 
     Ok(())
 }
-

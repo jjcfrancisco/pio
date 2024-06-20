@@ -1,4 +1,6 @@
 use crate::Result;
+use postgres::Statement;
+use postgres::types::Type;
 
 pub mod pool;
 pub mod async_job;
@@ -10,15 +12,22 @@ pub fn create_connection(uri: &str) -> Result<Client> {
     Ok(client)
 }
 
-pub fn create_table(client: &mut Client) -> Result<()> {
+pub fn create_table(client: &mut Client) -> Result<Statement> {
     client.execute("CREATE TABLE IF NOT EXISTS pio (
                     id INT,
                     properties JSONB,
                     geometry geometry);", &[])?;
-    Ok(())
+
+    let stmt = client.prepare("SELECT geometry FROM pio")?;
+    Ok(stmt)
 }
 
-pub fn create_binary_writer<'a>(client: &'a mut Client, sql: &str) -> Result<CopyInWriter<'a>> {
-    let sink:CopyInWriter = client.copy_in(sql)?;
+pub fn get_geom_type(stmt: Statement) -> Result<Type> {
+    let column = stmt.columns().get(0).expect("Failed to get columns");
+    Ok(column.type_().clone())
+}
+
+pub fn create_binary_writer<'a>(client: &'a mut Client) -> Result<CopyInWriter<'a>> {
+    let sink:CopyInWriter = client.copy_in("COPY pio (id, geometry) FROM stdin BINARY")?;
     Ok(sink)
 }

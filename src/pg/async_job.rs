@@ -2,6 +2,7 @@ use crate::Result;
 use bytes::Bytes;
 use tokio_postgres::{Client, CopyInSink, NoTls};
 
+#[allow(dead_code)]
 pub async fn create_connection(uri: &str) -> Result<Client> {
     let (client, connection) = tokio_postgres::connect(uri, NoTls).await?;
     tokio::spawn(async move {
@@ -12,6 +13,7 @@ pub async fn create_connection(uri: &str) -> Result<Client> {
     Ok(client)
 }
 
+#[allow(dead_code)]
 pub async fn create_table(client: &Client) -> Result<()> {
     client
         .execute(
@@ -25,6 +27,7 @@ pub async fn create_table(client: &Client) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub async fn create_sink(client: &Client, sql: &str) -> Result<CopyInSink<Bytes>> {
     let sink: CopyInSink<Bytes> = client.copy_in(sql).await?;
     Ok(sink)
