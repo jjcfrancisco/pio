@@ -5,7 +5,7 @@
 // use crate::{osmpbf::Osm, Result};
 // use std::collections::HashMap;
 //
-// fn apply_fields(config: &Config, osm: &Osm) -> Option<(String, PropertyValue)> {
+//; fn apply_fields(config: &Config, osm: &Osm) -> Option<(String, PropertyValue)> {
 //     for field in &config.fields {
 //         if let Some(prop) = osm.properties.get(&field.name) {
 //             if let Some(mapping) = &field.mapping {

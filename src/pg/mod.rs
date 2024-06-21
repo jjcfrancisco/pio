@@ -22,7 +22,7 @@ pub fn create_table(client: &mut Client) -> Result<Statement> {
     Ok(stmt)
 }
 
-pub fn get_geom_type(stmt: Statement) -> Result<Type> {
+pub fn infer_geom_type(stmt: Statement) -> Result<Type> {
     let column = stmt.columns().get(0).expect("Failed to get columns");
     Ok(column.type_().clone())
 }
@@ -31,3 +31,4 @@ pub fn create_binary_writer<'a>(client: &'a mut Client) -> Result<CopyInWriter<'
     let sink:CopyInWriter = client.copy_in("COPY pio (id, geometry) FROM stdin BINARY")?;
     Ok(sink)
 }
+
