@@ -2,9 +2,6 @@ use crate::Result;
 use postgres::Statement;
 use postgres::types::Type;
 
-pub mod pool;
-pub mod async_job;
-
 use postgres::{Client, NoTls, CopyInWriter};
 
 pub fn create_connection(uri: &str) -> Result<Client> {

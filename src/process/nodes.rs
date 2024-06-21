@@ -13,6 +13,7 @@ pub fn process_nodes<'a>(path: &str, writer: CopyInWriter<'a>, geom_type: Type) 
     nodes_reader.for_each(|element| match element {
         Element::Node(n) => {
             let id = n.id() as i32;
+            // Here properties
             let geom = Geometry::Point(Point::new(n.lon(), n.lat()));
             let wkb = geom_to_wkb(&geom).expect("Failed to insert node into database");
             writer
@@ -21,6 +22,7 @@ pub fn process_nodes<'a>(path: &str, writer: CopyInWriter<'a>, geom_type: Type) 
         }
         Element::DenseNode(d) => {
             let id = d.id() as i32;
+            // Here properties
             let geom = Geometry::Point(Point::new(d.lon(), d.lat()));
             let wkb = geom_to_wkb(&geom).expect("Failed to insert node into database");
             writer
