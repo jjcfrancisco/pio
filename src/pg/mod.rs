@@ -25,7 +25,7 @@ pub fn infer_geom_type(stmt: Statement) -> Result<Type> {
 }
 
 pub fn create_binary_writer<'a>(client: &'a mut Client) -> Result<CopyInWriter<'a>> {
-    let sink:CopyInWriter = client.copy_in("COPY pio (id, geometry) FROM stdin BINARY")?;
-    Ok(sink)
+    let writer:CopyInWriter = client.copy_in("COPY pio (id, geometry) FROM stdin BINARY")?;
+    Ok(writer)
 }
 

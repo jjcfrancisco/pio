@@ -1,2 +1,3 @@
 pub mod nodes;
-pub mod binary_geom;
+mod binary_geom;
+mod properties;
