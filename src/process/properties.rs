@@ -70,9 +70,10 @@ fn sort_fields<'a>(tags: HashMap<&str, &str>, configs: &'a Vec<Config>) -> Prope
     // Iterate over all configs
     for config in configs.iter() {
         // Sort class based on yaml
-        // if let Ok((key, value)) = sort_class(&config, &tags) {
-        //     properties.add(key, value);
-        // }
+        if let Ok((key, value)) = sort_class(&config, &tags) {
+            println!("key: {}, value: {}", key, value);
+            properties.add(key.as_str(), FieldType::Text(value));
+        }
         // Sort other fields based on yaml
         for field in config.fields.iter() {
             if tags.get(field.name.as_str()).is_some() {
@@ -102,8 +103,29 @@ fn sort_fields<'a>(tags: HashMap<&str, &str>, configs: &'a Vec<Config>) -> Prope
 fn sort_class<'a>(
     config: &'a Config,
     tags: &'a HashMap<&'a str, &'a str>,
-) -> Result<(&'a str, &'a str)> {
-    Ok(("key", "value"))
+) -> Result<(String, String)> {
+    for class in config.class.iter() {
+        for kvat in class.iter() {
+            if let Some(values) = tags.get(kvat.key.as_str()) {
+                if kvat.values.contains(&values.to_string()) {
+                    if let Some(and) = &kvat.and {
+                        for kvs in and.iter() {
+                            if let Some(value) = tags.get(kvs.key.as_str()) {
+                                if kvs.values.contains(&value.to_string()) {
+                                    return Ok(("class".into(), kvat.then.clone()));
+                                }
+                            }
+                        }
+                    } else {
+                        return Ok(("class".into(), kvat.then.clone()));
+                    }
+                }
+            }
+        }
+    }
+
+    Err("Failed to sort class".into())
+
 }
 
 #[cfg(test)]
