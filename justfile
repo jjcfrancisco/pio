@@ -1,7 +1,7 @@
 @run-bin area:
     cargo build --release
     cp target/release/pio .
-    ./pio -u postgresql://pio:password@localhost:25432/master -o examples/{{ area }}-latest.osm.pbf
+    ./pio -u postgresql://pio:password@localhost:25432/master -o ./examples/{{ area }}-latest.osm.pbf --schema-yamls ./resources/
 
 @drop-table:
     psql postgresql://pio:password@localhost:25432/master -c "DROP TABLE pio;"

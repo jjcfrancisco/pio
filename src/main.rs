@@ -5,9 +5,9 @@ mod pg;
 mod process;
 mod utils;
 
-use utils::cli;
+use utils::cli::run;
 
 fn main() -> Result<()> {
-    cli::run()?;
+    run()?;
     Ok(())
 }

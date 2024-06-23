@@ -1,5 +1,3 @@
 /target
 *.geojson
-melilla-latest.osm.pbf
-andalucia-latest.osm.pbf
-spain-latest.osm.pbf
+*.osm.pbf

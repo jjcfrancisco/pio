@@ -1,29 +1,33 @@
 use crate::Result;
-use std::collections::HashMap;
 use serde_json::json;
 use serde_json::Value;
+use std::collections::HashMap;
 
-use osmpbf::{Node, Way, Relation, DenseNode};
+use osmpbf::{DenseNode, Node, Relation, Way};
+
+use crate::utils::config::Config;
+use crate::utils::validate::{try_mapping, FieldType};
 
 pub struct Properties {
-    pub jsonb: Value
+    pub jsonb: Value,
 }
 
 impl Properties {
     pub fn new() -> Self {
-        let data = json!({
-        });
-        Self {
-            jsonb: data
-        } 
+        let data = json!({});
+        Self { jsonb: data }
     }
-    pub fn add(&mut self, key: &str, value: &str) {
-        if let Value::Object(ref mut map) = self.jsonb {
-            map.insert(key.to_string(), json!(value));
-        }
+    pub fn add(&mut self, key: &str, value: FieldType) {
+        self.jsonb[key] = match value {
+            FieldType::Integer(value) => json!(value),
+            FieldType::Text(value) => json!(value),
+            FieldType::Float(value) => json!(value),
+            FieldType::Boolean(value) => json!(value),
+        };
     }
 }
 
+#[warn(dead_code)]
 pub enum OsmType<'a> {
     Node(&'a Node<'a>),
     DenseNode(&'a DenseNode<'a>),
@@ -31,35 +35,75 @@ pub enum OsmType<'a> {
     Relation(&'a Relation<'a>),
 }
 
+pub fn sort_tags<'a>(element: OsmType, configs: &'a Vec<Config>) -> Value {
+    let mut tags: HashMap<&str, &str> = HashMap::new();
 
-pub fn sort_tags(element: OsmType) -> Result<Properties> {
-
-    let tags = match element {
+    match element {
         OsmType::Node(node) => {
             for (key, value) in node.tags() {
-                println!("{}: {}", key, value);
-            } 
-        },
+                tags.insert(key, value);
+            }
+        }
         OsmType::DenseNode(dense_node) => {
             for (key, value) in dense_node.tags() {
-                println!("{}: {}", key, value);
+                tags.insert(key, value);
             }
-        },
+        }
         OsmType::Way(way) => {
             for (key, value) in way.tags() {
-                println!("{}: {}", key, value);
+                tags.insert(key, value);
             }
-        },
+        }
         OsmType::Relation(relation) => {
             for (key, value) in relation.tags() {
-                println!("{}: {}", key, value);
+                tags.insert(key, value);
             }
-        },
+        }
     };
 
-    // Get tags into a hashmap
+    let properties = sort_fields(tags, configs);
+    serde_json::to_value(properties.jsonb).expect("Failed to convert properties to json")
+}
+
+fn sort_fields<'a>(tags: HashMap<&str, &str>, configs: &'a Vec<Config>) -> Properties {
     let mut properties = Properties::new();
-    Ok(properties)
+    // Iterate over all configs
+    for config in configs.iter() {
+        // Sort class based on yaml
+        // if let Ok((key, value)) = sort_class(&config, &tags) {
+        //     properties.add(key, value);
+        // }
+        // Sort other fields based on yaml
+        for field in config.fields.iter() {
+            if tags.get(field.name.as_str()).is_some() {
+                if let Some(rename_to) = &field.rename_to {
+                    // Cast to field_type
+                    properties.add(rename_to, {
+                        try_mapping(
+                            tags.get(field.name.as_str()).expect("Failed to get field"),
+                            &field.mapping,
+                        )
+                    });
+                } else {
+                    // Cast to field_type
+                    properties.add(field.name.as_str(), {
+                        try_mapping(
+                            tags.get(field.name.as_str()).expect("Failed to get field"),
+                            &field.mapping,
+                        )
+                    });
+                }
+            }
+        }
+    }
+    properties
+}
+
+fn sort_class<'a>(
+    config: &'a Config,
+    tags: &'a HashMap<&'a str, &'a str>,
+) -> Result<(&'a str, &'a str)> {
+    Ok(("key", "value"))
 }
 
 #[cfg(test)]
@@ -70,9 +114,7 @@ mod tests {
     #[test]
     fn test_properties() {
         let mut properties = Properties::new();
-        properties.add("email", "hello@world.com");
-        properties.add("is_student", "true");
-        assert_eq!(properties.jsonb, json!({"email": "hello@world.com", "is_student": "true"}));
+        properties.add("key", FieldType::Text("value".to_string()));
+        assert_eq!(properties.jsonb["key"], json!("value"));
     }
-
 }

@@ -35,10 +35,26 @@ pub struct Kv {
 }
 
 // Read file to YAML
-pub fn read_yaml(path: &str) -> Result<Config> {
+fn read_yaml(path: &str) -> Result<Config> {
     let file = std::fs::read_to_string(path)?;
     let config: Config = serde_yaml::from_str(&file)?;
     Ok(config)
+}
+
+// Read all schema yamls
+pub fn read_schema_yamls(path: &str) -> Result<Vec<Config>> {
+    let mut configs: Vec<Config> = Vec::new();
+    let dir = std::fs::read_dir(path)?;
+    for entry in dir {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().expect("Could not find extension") == "yaml" {
+            let config = read_yaml(path.to_str().expect("Could not convert path to str"))?;
+            configs.push(config);
+        }
+    }
+
+    Ok(configs)
 }
 
 #[cfg(test)]
