@@ -1,15 +1,22 @@
 use super::binary_geom::Wkb;
 use super::properties::{sort_tags, OsmType};
+use crate::utils::config::Config;
 use crate::Result;
+
 use geo::{Geometry, Point};
 use osmpbf::{Element, ElementReader};
 use postgres::binary_copy::BinaryCopyInWriter;
 use postgres::types::Type;
 use postgres::CopyInWriter;
 use wkb::geom_to_wkb;
-use crate::utils::config::Config;
 
-pub fn process_nodes<'a>(path: &str, configs: Vec<Config>, writer: CopyInWriter<'a>, geom_type: Type) -> Result<()> {
+// OSM Nodes
+pub fn process_nodes<'a>(
+    path: &str,
+    configs: Vec<Config>,
+    writer: CopyInWriter<'a>,
+    geom_type: Type,
+) -> Result<()> {
     let mut writer = BinaryCopyInWriter::new(writer, &[Type::INT4, Type::JSONB, geom_type]);
     let nodes_reader = ElementReader::from_path(path)?;
     nodes_reader.for_each(|element| match element {
@@ -37,3 +44,6 @@ pub fn process_nodes<'a>(path: &str, configs: Vec<Config>, writer: CopyInWriter<
 
     Ok(())
 }
+
+// OSM Ways
+// here code

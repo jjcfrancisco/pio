@@ -4,7 +4,7 @@ use crate::Result;
 use clap::Parser;
 
 use crate::pg::{create_binary_writer, create_connection, create_table, infer_geom_type};
-use crate::process::nodes::process_nodes;
+use crate::process::elements::process_nodes;
 use crate::utils::config::read_schema_yamls;
 
 #[derive(Parser, Debug)]
